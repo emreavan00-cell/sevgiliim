@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Azra'nın Doğum Günü 🎂</title>
+<style>
+  html, body {
+    margin:0; padding:0; width:100%; height:100%;
+    background:#1a0533; overflow:hidden;
+    -webkit-text-size-adjust:100%; -webkit-touch-callout:none;
+  }
+  body{
+    display:flex; align-items:stretch; justify-content:center;
+    position:fixed; inset:0;
+  }
+  * { -webkit-tap-highlight-color:transparent; box-sizing:border-box; }
+  #gameArea{
+    position:relative; width:100%; flex:1 1 auto; overflow:hidden; min-height:0;
+  }
+  #gc{ display:block; width:100%; height:100%; image-rendering:pixelated; touch-action:none; }
+  #normalControls, #bossControls {
+    flex-shrink:0;
+  }
+</style>
+</head>
+<body>
+<div id="gw" style="width:100%;max-width:600px;height:100%;background:#1a0533;border-radius:0;overflow:hidden;user-select:none;-webkit-user-select:none;position:relative;font-family:sans-serif;display:flex;flex-direction:column;">
+<div id="gameArea">
+<canvas id="gc"></canvas>
+
+<!-- HD Karakter İsimleri, Başlıklar ve Eşya Etiketleri İçin Kusursuz Üst Katman (Overlay) -->
+<div id="uiOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;"></div>
+
+<!-- Ekranda Mükemmel Ortalanmış Orijinal Piksel Simalı Diyalog Sistemi -->
+<div id="dialogBox" onclick="advanceDlg()" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(8,2,16,0.92);z-index:25;align-items:center;justify-content:center;flex-direction:column;box-sizing:border-box;cursor:pointer;padding:15px;"></div>
+
+<!-- Final Ekranı -->
+<div id="winScreen" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(10,0,30,0.96);z-index:30;flex-direction:column;align-items:center;justify-content:center;">
+  <div style="font-size:60px;margin-bottom:4px;">🫂💕</div>
+  <div style="color:#fff;font-size:18px;font-weight:bold;margin-bottom:4px;text-shadow:0 2px 4px #000;">Tebrikler Emre!</div>
+  <div style="color:#ff88cc;font-size:13px;margin-bottom:12px;">Kazanılan Doğum Günü Hediyeleri:</div>
+  <div id="giftsWon" style="font-size:32px;letter-spacing:8px;margin-top:2px;background:rgba(255,255,255,0.1);padding:8px 20px;border-radius:12px;"></div>
+  <button onclick="restartGame()" style="margin-top:20px;padding:12px 32px;border-radius:24px;background:#7a20a0;border:2px solid #c060ff;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,0.3);">Tekrar Oyna 🎮</button>
+</div>
+</div>
+
+<div id="normalControls" style="display:flex;justify-content:space-between;align-items:center;padding:8px 20px calc(8px + env(safe-area-inset-bottom));background:#2a0a4a;flex-shrink:0;">
+  <div style="display:grid;grid-template-columns:60px 60px;grid-template-rows:52px 52px;gap:5px;">
+    <button id="btnJump" style="grid-column:1/3;grid-row:1;width:125px;height:52px;font-size:17px;border-radius:14px;background:#7a20a0;border:2px solid #c060ff;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;">▲ Zıpla</button>
+    <button id="btnLeft"  style="grid-column:1;grid-row:2;width:60px;height:52px;font-size:24px;border-radius:14px;background:#4a1577;border:2px solid #8040c0;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;">◀</button>
+    <button id="btnRight" style="grid-column:2;grid-row:2;width:60px;height:52px;font-size:24px;border-radius:14px;background:#4a1577;border:2px solid #8040c0;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;">▶</button>
+  </div>
+  <div style="width:60px;"></div>
+</div>
+
+<div id="bossControls" style="display:none;justify-content:space-between;align-items:center;padding:10px 20px calc(10px + env(safe-area-inset-bottom));background:#180222;flex-shrink:0;">
+  <div style="display:grid;grid-template-columns:54px 54px;grid-template-rows:54px 54px;gap:4px;">
+    <button id="bBtnJump"  style="grid-column:1/3;grid-row:1;width:112px;height:54px;font-size:18px;border-radius:12px;background:#9010a0;border:2px solid #e060ff;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;">▲ Zıpla</button>
+    <button id="bBtnLeft"  style="grid-column:1;grid-row:2;width:54px;height:54px;font-size:22px;border-radius:12px;background:#5a0a66;border:2px solid #b040d0;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;">◀</button>
+    <button id="bBtnRight" style="grid-column:2;grid-row:2;width:54px;height:54px;font-size:22px;border-radius:12px;background:#5a0a66;border:2px solid #b040d0;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;">▶</button>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+    <button id="btnFire" style="width:72px;height:72px;font-size:13px;font-weight:bold;border-radius:50%;background:#a00020;border:3px solid #ff2244;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;line-height:1.3;box-shadow: 0 0 10px #ff0000;">⚡<br>AŞK ATIŞI</button>
+    <div style="width:72px;height:5px;background:#333;border-radius:3px;overflow:hidden;"><div id="fireFill" style="height:100%;width:100%;background:#ff2244;border-radius:3px;"></div></div>
+    <div id="fireText" style="font-size:10px;color:#ff9999;font-weight:bold;">Hazır!</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const canvas=document.getElementById('gc');
+const ctx=canvas.getContext('2d');
+const VW=200,VH=120;
+canvas.width=VW;canvas.height=VH;
+
+// Oyun alanını tam ekrana yayacak şekilde canvas CSS boyutunu güncelle
+function resizeCanvas(){
+  const area = document.getElementById('gameArea');
+  canvas.style.width = area.clientWidth + 'px';
+  canvas.style.height = area.clientHeight + 'px';
+  updateHDUI();
+}
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', ()=>setTimeout(resizeCanvas,200));
+
+const GY=VH-12,PH=14,WORLD_W=2000;
+
+// Web Audio API Ses Sentezleyici
+let audioCtx = null;
+function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+function playSound(type) {
+  initAudio(); if(!audioCtx) return;
+  const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination); const t = audioCtx.currentTime;
+  if (type === 'jump') {
+    osc.type = 'triangle'; osc.frequency.setValueAtTime(150, t); osc.frequency.exponentialRampToValueAtTime(400, t + 0.15);
+    gain.gain.setValueAtTime(0.15, t); gain.gain.linearRampToValueAtTime(0, t + 0.15); osc.start(t); osc.stop(t + 0.15);
+  } else if (type === 'gift') {
+    osc.type = 'sine'; osc.frequency.setValueAtTime(320, t); osc.frequency.setValueAtTime(640, t + 0.08);
+    gain.gain.setValueAtTime(0.15, t); gain.gain.linearRampToValueAtTime(0, t + 0.2); osc.start(t); osc.stop(t + 0.2);
+  } else if (type === 'hit') {
+    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, t); osc.frequency.linearRampToValueAtTime(30, t + 0.2);
+    gain.gain.setValueAtTime(0.25, t); gain.gain.linearRampToValueAtTime(0, t + 0.2); osc.start(t); osc.stop(t + 0.2);
+  } else if (type === 'shoot') {
+    osc.type = 'square'; osc.frequency.setValueAtTime(450, t); osc.frequency.exponentialRampToValueAtTime(180, t + 0.1);
+    gain.gain.setValueAtTime(0.08, t); gain.gain.linearRampToValueAtTime(0, t + 0.1); osc.start(t); osc.stop(t + 0.1);
+  } else if (type === 'talk') {
+    osc.type = 'sine'; osc.frequency.setValueAtTime(240, t); gain.gain.setValueAtTime(0.04, t);
+    gain.gain.linearRampToValueAtTime(0, t + 0.05); osc.start(t); osc.stop(t + 0.05);
+  }
+}
+
+// Zorlu Platform Düzenlemeleri
+const platforms=[
+  {x:0,   y:GY,   w:160},
+  {x:170, y:GY-18,w:50},   
+  {x:230, y:GY-36,w:40},
+  {x:280, y:GY-54,w:40},   // 💻 (Index: 3)
+  {x:340, y:GY-24,w:60},  
+  {x:430, y:GY,   w:100},
+  {x:560, y:GY-16,w:60},
+  {x:650, y:GY-34,w:45},
+  {x:710, y:GY-52,w:40},   // 📓 (Index: 8)
+  {x:780, y:GY-20,w:60},  
+  {x:870, y:GY,   w:110},
+  {x:1010,y:GY-20,w:60},
+  {x:1100,y:GY-38,w:40},
+  {x:1160,y:GY-56,w:40},   // 🌸 (Index: 13)
+  {x:1230,y:GY-24,w:70},  
+  {x:1330,y:GY-10,w:80},
+  {x:1440,y:GY,   w:90},
+  {x:1560,y:GY,   w:140},  // Güvenli bölge (Köprü)
+  {x:1730,y:GY,   w:270},  // Boss Arenası (Index: 18)
+];
+
+// Son Diken Engelinin Konumu Tam Köprünün Ortasına Ayarlandı (Düzeltme 2)
+const spikes=[
+  {x:45,  y:GY-7, w:16},
+  {x:470, y:GY-7, w:16},
+  {x:910, y:GY-7, w:16},
+  {x:1620,y:GY-7, w:16},   // Son Diken Köprünün (1560) üstünde hizalandı!
+];
+
+const giftDefs=[
+  {emoji:'💻',label:'Website',    pi:3},
+  {emoji:'📓',label:'Anı Defteri',pi:8},
+  {emoji:'🌸',label:'Çiçek',      pi:13},
+];
+const gifts=giftDefs.map(g=>{
+  const p=platforms[g.pi];
+  return{emoji:g.emoji,label:g.label,x:p.x+p.w/2,y:p.y-12,collected:false};
+});
+
+const BOSS_PLAT=platforms[18];
+const bossWorldX=BOSS_PLAT.x+85; 
+const bossWorldY=BOSS_PLAT.y-PH-2;
+const azraWorldX=BOSS_PLAT.x+BOSS_PLAT.w-28;
+const azraWorldY=BOSS_PLAT.y-PH;
+
+// Oyun Döngüsü State'leri
+let state='play'; 
+let bossDead=false;
+let finalDialogDone=false;
+let isCyberUniverse=false;
+let azraSupporterState=0; 
+let bossHP=3,bossProjs=[],playerProjs=[],bossShootTimer=0,fireCD=0;
+const FIRE_CD=140;
+
+let player={x:20,y:GY-PH,vy:0,vx:0,onGround:false,facing:1,leg:0,lt:0,hp:3,inv:0};
+let cam=0,animTick=0,collectedGifts=[];
+
+// v9.3: Oyundaki sprite stiliyle birebir uyumlu, kafa+gövde+kol/bacak gösteren büyük piksel portreler
+let dlgLines=[],dlgIdx=0,dlgCB=null;
+function startDialog(lines,cb){
+  dlgLines=lines;dlgIdx=0;dlgCB=cb; state='dialog';
+  document.getElementById('dialogBox').style.display='flex'; renderDlg();
+}
+function renderDlg(){
+  const box=document.getElementById('dialogBox'); box.innerHTML='';
+  if(dlgIdx>=dlgLines.length)return;
+  const line=dlgLines[dlgIdx];
+  
+  const isE=line.speaker==='emre';
+  const isA=line.speaker==='azra';
+  const isB=line.speaker==='boss';
+
+  // Konuşma Balonu Üstte
+  const bwrap=document.createElement('div');
+  bwrap.style.cssText=`display:flex;justify-content:${isE?'flex-start':'flex-end'};width:95%;max-width:320px;margin-bottom:20px;`;
+  
+  const bub=document.createElement('div');
+  bub.style.cssText=`
+    position:relative; background:${isE?'#ffffff':(isB?'#1f020a':'#fff2fa')};
+    color:${isE?'#111111':(isB?'#ff5555':'#e01070')};
+    border-radius:20px; padding:12px 16px; max-width:220px;
+    font-size:14px; font-weight:700; line-height:1.4;
+    box-shadow:0 0 0 4px ${isE?'#b040ff':(isB?'#ff1133':'#ff50a0')}, 0 6px 15px rgba(0,0,0,0.4);
+    animation: bubblePop 0.22s ease-out;
+  `;
+  bub.textContent=line.text;
+
+  const b1=document.createElement('div');
+  b1.style.cssText=`position:absolute;top:-8px;left:20px;width:12px;height:12px;border-radius:50%;background:inherit;box-shadow:-2px -2px 0 2px ${isE?'#b040ff':(isB?'#ff1133':'#ff50a0')};`;
+  bub.appendChild(b1);
+
+  const tail=document.createElement('div');
+  tail.style.cssText=`position:absolute;bottom:-9px;${isE?'left:24px':'right:24px'};width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:9px solid ${isE?'#ffffff':(isB?'#1f020a':'#fff2fa')};`;
+  bub.appendChild(tail); bwrap.appendChild(bub); box.appendChild(bwrap);
+
+  // Karakter Kafaları + Gövdeleri Alt Satırda Ortalanıyor
+  const hrow=document.createElement('div');
+  hrow.style.cssText='display:flex;justify-content:space-around;align-items:flex-end;width:95%;max-width:320px;gap:30px;';
+  
+  // Sol Karakter (Emre Portresi)
+  const leftWrapper = document.createElement('div');
+  leftWrapper.style.cssText = `display:flex;flex-direction:column;align-items:center;opacity:${isE?1:0.35}; transition: opacity 0.2s;`;
+  const emreHead = drawSimaCanvas('emre');
+  leftWrapper.appendChild(emreHead);
+  const emreLabel = document.createElement('div');
+  emreLabel.style.cssText = 'color:#ffd6f5;font-size:13px;font-weight:bold;margin-top:8px;text-shadow:1px 1px 2px #000;';
+  emreLabel.textContent = 'Emre';
+  leftWrapper.appendChild(emreLabel); // DÜZELTME: innerHTML+= canvas'ı siliyordu, artık appendChild kullanılıyor
+
+  // Sağ Karakter (Uzak Mesafe veya Azra Portresi)
+  const rightWrapper = document.createElement('div');
+  rightWrapper.style.cssText = `display:flex;flex-direction:column;align-items:center;opacity:${!isE?1:0.35}; transition: opacity 0.2s;`;
+  
+  let currentTarget = 'boss';
+  let rightName = "Uzak Mesafe"; 
+  let rightColor = "#ff5555";
+
+  // DÜZELTME: Boss yenildikten sonraki TÜM diyaloglarda (Emre konuşurken dahil) sağda Azra
+  // görünmeli; eskiden Emre konuşurken (isE=true) bu koşul yakalanmıyor ve "Uzak Mesafe" kalıyordu.
+  if (isA || bossDead || (azraSupporterState === 1)) {
+    currentTarget = 'azra';
+    rightName = "Azra";
+    rightColor = "#ff69b4";
+  }
+
+  const rightHead = drawSimaCanvas(currentTarget);
+  rightWrapper.appendChild(rightHead);
+  const rightLabel = document.createElement('div');
+  rightLabel.style.cssText = `color:${rightColor};font-size:13px;font-weight:bold;margin-top:8px;text-shadow:1px 1px 2px #000;`;
+  rightLabel.textContent = rightName;
+  rightWrapper.appendChild(rightLabel); // DÜZELTME: innerHTML+= canvas'ı siliyordu, artık appendChild kullanılıyor
+
+  hrow.appendChild(leftWrapper); hrow.appendChild(rightWrapper); box.appendChild(hrow);
+
+  const hint=document.createElement('div');
+  hint.style.cssText='color:#999;font-size:12px;margin-top:20px;font-weight:bold;pointer-events:none;';
+  hint.textContent='Ekrana dokunarak ilerle ➔'; box.appendChild(hint);
+}
+
+// Oyundaki karakter çizimleriyle (drawChar/drawAzra/drawBossChar) AYNI piksel düzenini kullanan,
+// büyütülmüş, kafa+gövde(+kol/bacak) net görünen diyalog portresi çizici.
+function drawSimaCanvas(who) {
+  const S = 7; // piksel ölçeği (büyütme)
+  const PADX = 1, PADY = 1; // her kenarda 1 birimlik boşluk
+  let baseW, baseH;
+  if (who === 'boss') { baseW = 14; baseH = 16; } else { baseW = 10; baseH = 18; }
+
+  const c = document.createElement('canvas');
+  c.width = baseW * S; c.height = baseH * S;
+  c.style.cssText = `width:${Math.round(baseW*S*0.78)}px;height:${Math.round(baseH*S*0.78)}px;image-rendering:pixelated;border-radius:14px;box-shadow:0 4px 10px rgba(0,0,0,0.5);background:#240c3a;border:3px solid #7a20a0;display:block;`;
+  const x = c.getContext('2d');
+  x.imageSmoothingEnabled = false;
+
+  function px(px_, py_, pw_, ph_, color) {
+    x.fillStyle = color;
+    x.fillRect((px_ + PADX) * S, (py_ + PADY) * S, pw_ * S, ph_ * S);
+  }
+
+  if (who === 'emre') {
+    px(0, 0, 8, 3, '#1a0800');     // saç
+    px(1, 3, 6, 5, '#c8844a');     // yüz/cilt
+    px(2, 4, 1, 2, '#000');        // sol göz
+    px(5, 4, 1, 2, '#000');        // sağ göz
+    px(3, 7, 2, 1, '#a05030');     // sakal/ağız
+    px(-1, 8, 2, 3, '#c8844a');    // sol kol
+    px(7, 8, 2, 3, '#c8844a');     // sağ kol
+    px(0, 8, 8, 5, '#111111');     // tişört (gövde)
+    px(0, 13, 3, 4, '#1a3a8a');    // sol bacak
+    px(5, 13, 3, 4, '#1a3a8a');    // sağ bacak
+  } else if (who === 'boss') {
+    c.style.borderColor = '#ff1133';
+    c.style.background = '#1c0005';
+    px(0, 0, 12, 3, '#0a0a0a');    // kukuleta
+    px(1, 3, 10, 7, '#1a1a1a');    // yüz gölgesi
+    px(2, 4, 2, 2, '#ff1100');     // sol kırmızı göz
+    px(8, 4, 2, 2, '#ff1100');     // sağ kırmızı göz
+    px(3, 8, 6, 2, '#cc0000');     // ağız hattı
+    px(0, 10, 12, 6, '#0a0a0a');   // gövde
+  } else if (who === 'azra') {
+    c.style.borderColor = '#ff50a0';
+    px(0, 0, 8, 3, '#2a1005');     // saç
+    px(1, 3, 6, 5, '#c8844a');     // yüz/cilt
+    px(2, 4, 1, 2, '#000');        // sol göz
+    px(5, 4, 1, 2, '#000');        // sağ göz
+    px(3, 7, 2, 1, '#cc4466');     // gülümseme
+    px(-1, 8, 2, 3, '#c8844a');    // sol kol
+    px(7, 8, 2, 3, '#c8844a');     // sağ kol
+    px(-1, 8, 10, 10, '#ffffff'); // elbise (gövde+etek)
+  }
+  return c;
+}
+
+function advanceDlg(){
+  playSound('talk'); dlgIdx++;
+  if(dlgIdx>=dlgLines.length){
+    document.getElementById('dialogBox').style.display='none'; 
+    if(dlgCB) dlgCB();
+  } else renderDlg();
+}
+
+function resolveCol(){
+  player.onGround=false;
+  for(const p of platforms){
+    if(player.x+10>p.x&&player.x<p.x+p.w){
+      const bot=player.y+PH,prev=bot-player.vy;
+      if(prev<=p.y+2&&bot>=p.y&&player.vy>=0){ player.y=p.y-PH;player.vy=0;player.onGround=true; }
+    }
+  }
+}
+
+function updateFireUI(){
+  const rdy=fireCD===0; const pct=rdy?100:Math.round((1-fireCD/FIRE_CD)*100);
+  document.getElementById('fireFill').style.width=pct+'%';
+  document.getElementById('fireText').textContent=rdy?'AŞK HAZIR! ⚡':Math.ceil(fireCD/60)+'s';
+  document.getElementById('btnFire').style.opacity=rdy?'1':'0.3';
+}
+
+function fireShot(){
+  if(fireCD>0||state!=='boss_fight')return;
+  playSound('shoot'); playerProjs.push({x:player.x+10,y:player.y+7,vx:3.5});
+  fireCD=FIRE_CD; updateFireUI();
+}
+
+// DÜZELTME: Etiketler artık canvas'ın GERÇEK ekran boyutuna göre (genişlik responsive
+// olduğu için x ve y için AYRI oranlar kullanılarak) konumlandırılıyor. Önceden x ekseni
+// için de sabit 520/VH oranı kullanılıyordu, bu da canvas dar ekranlarda küçüldüğünde
+// "Emre" yazısının karakterin üstünden kayıp gitmesine sebep oluyordu.
+function updateHDUI(){
+  const ov=document.getElementById('uiOverlay'); ov.innerHTML='';
+  const rect = canvas.getBoundingClientRect();
+  const ratioX = rect.width / VW;
+  const ratioY = rect.height / VH;
+  
+  if(!isCyberUniverse) {
+    ov.innerHTML+=`<div style="position:absolute;left:50%;top:12px;transform:translateX(-50%);color:#ff88cc;font-size:15px;font-weight:bold;text-shadow:0 2px 4px rgba(0,0,0,0.8);letter-spacing:1px;">🎂 Azra'nın Doğum Günü! 🎂</div>`;
+  } else {
+    ov.innerHTML+=`<div style="position:absolute;left:50%;top:12px;transform:translateX(-50%);color:#ff2266;font-size:13px;font-weight:bold;text-shadow:0 2px 4px rgba(0,0,0,0.9);letter-spacing:1px;">⚠️ BOYUT DEĞİŞTİ: UZAK MESAFE ARENASI ⚠️</div>`;
+  }
+
+  if(state==='play'||state==='boss_fight'){
+    const ex=((player.x+4)-cam)*ratioX; const ey=(player.y-7)*ratioY;
+    if(ex >= -40 && ex <= rect.width+40) {
+      ov.innerHTML+=`<div style="position:absolute;left:${ex}px;top:${ey}px;transform:translateX(-50%);color:#ffd6f5;font-size:11px;font-weight:bold;text-shadow:1px 1px 2px #000;white-space:nowrap;">Emre</div>`;
+    }
+  }
+  if(bossDead){
+    const ax=((azraWorldX+4)-cam)*ratioX; const ay=(azraWorldY-8)*ratioY;
+    if(ax >= -40 && ax <= rect.width+40) {
+      ov.innerHTML+=`<div style="position:absolute;left:${ax}px;top:${ay}px;transform:translateX(-50%);color:#fff;font-size:11px;font-weight:bold;text-shadow:1px 1px 3px #ff00ff;white-space:nowrap;">Azra</div>`;
+    }
+  }
+  if(!isCyberUniverse){
+    gifts.forEach(g=>{
+      if(!g.collected){
+        const gx=(g.x-cam)*ratioX; const gy=(g.y+10)*ratioY;
+        if(gx >= -40 && gx <= rect.width+40) {
+          ov.innerHTML+=`<div style="position:absolute;left:${gx}px;top:${gy}px;transform:translateX(-50%);color:#ffe8f7;font-size:10px;font-weight:bold;text-shadow:1px 1px 3px #000;white-space:nowrap;">${g.label}</div>`;
+        }
+      }
+    });
+  }
+}
+
+function update(){
+  animTick++; if(state==='dialog'||state==='win')return;
+  const SPD=1.1,JUMP=-3.6,GRAV=0.13,MAXFALL=4.5;
+
+  player.vx=0;
+  if(keys.left){player.vx=-SPD;player.facing=-1;}
+  if(keys.right){player.vx=SPD;player.facing=1;}
+  if(keys.jump&&player.onGround){playSound('jump'); player.vy=JUMP;player.onGround=false;keys.jump=false;}
+  player.vy+=GRAV; if(player.vy>MAXFALL)player.vy=MAXFALL;
+  player.x+=player.vx; player.y+=player.vy;
+  if(player.inv>0)player.inv--;
+
+  if(state==='play'){
+    if(player.x<0)player.x=0; if(player.x>WORLD_W-10)player.x=WORLD_W-10;
+  } else {
+    if(player.x<BOSS_PLAT.x+4)player.x=BOSS_PLAT.x+4; if(player.x>BOSS_PLAT.x+85)player.x=BOSS_PLAT.x+85;
+  }
+
+  resolveCol();
+  if(player.y>VH+20){
+    playSound('hit'); player.vy=0;
+    if(state==='boss_fight'){player.x=BOSS_PLAT.x+10;player.y=BOSS_PLAT.y-PH;}
+    else{player.x=20;player.y=GY-PH;cam=0;}
+  }
+
+  cam=Math.max(0,Math.min(player.x-VW*0.35,WORLD_W-VW));
+  if(player.vx!==0&&player.onGround){ player.lt++; if(player.lt%10===0)player.leg=1-player.leg; } else player.leg=0;
+
+  if(state==='play'){
+    for(const s of spikes){
+      if(player.inv===0&&player.x+9>s.x&&player.x<s.x+s.w&&player.y+PH>=s.y&&player.y+PH<=s.y+10){
+        playSound('hit'); player.hp=Math.max(0,player.hp-1); player.inv=70;
+        player.vy=-2.5; player.x-=player.facing*15;
+        if(player.hp<=0){player.x=20;player.y=GY-PH;player.vy=0;cam=0;player.hp=3;collectedGifts=[];gifts.forEach(g=>g.collected=false);}
+      }
+    }
+    for(const g of gifts){
+      if(!g.collected&&Math.abs(player.x+5-g.x)<12&&Math.abs(player.y+7-g.y)<14){
+        playSound('gift'); g.collected=true; collectedGifts.push(g.emoji);
+      }
+    }
+    const allGifts=gifts.every(g=>g.collected);
+    if(allGifts&&!bossDead&&Math.abs(player.x+5-bossWorldX)<28&&player.x<bossWorldX){
+      startDialog([
+        {speaker:'emre',text:'Sen de kimsin?'},
+        {speaker:'boss', text:'Ben Uzak Mesafeyim, beni geçemezsin!'},
+        {speaker:'emre', text:'Karşıma kim veya ne çıkarsa çıksın, geçerim!'}
+      ],()=>{
+        isCyberUniverse=true; state='boss_fight';
+        bossHP=3; player.hp=3; fireCD=0; bossProjs=[]; playerProjs=[]; bossShootTimer=0;
+        player.x=BOSS_PLAT.x+10; player.y=BOSS_PLAT.y-PH; player.vy=0; cam=WORLD_W-VW;
+        document.getElementById('normalControls').style.display='none';
+        document.getElementById('bossControls').style.display='flex';
+        updateFireUI();
+      });
+    }
+    if(bossDead&&!finalDialogDone&&Math.abs(player.x+5-azraWorldX)<18&&Math.abs(player.y-azraWorldY)<20){
+      startDialog([
+        {speaker:'emre', text:'Geldim benim canım sevgilim. Sonunda kavuştuk. Seni çok özledim. Umarım hediyelerimi beğenirsin, iyi ki doğdun.'},
+        {speaker:'azra', text:'Teşekkürler.'},
+        {speaker:'emre', text:'Seni çok seviyorum aşkım benim.'},
+        {speaker:'azra', text:'Teşekkürler...'}
+      ],()=>{
+        finalDialogDone=true; state='win';
+        document.getElementById('winScreen').style.display='flex';
+        document.getElementById('giftsWon').textContent=collectedGifts.join(' ');
+      });
+    }
+  }
+
+  if(state==='boss_fight'){
+    if(player.hp === 1 && azraSupporterState === 0) {
+      azraSupporterState = 1; 
+      startDialog([
+        {speaker:'azra', text:'Benim için savaş sevgilim! 💋💜'}
+      ],()=>{
+        player.hp = 2; 
+        player.inv = 90; 
+        azraSupporterState = 2; 
+        state = 'boss_fight'; 
+        playSound('gift');
+      });
+      return;
+    }
+
+    bossShootTimer++;
+    let triggerTime = (bossHP === 1) ? 60 : 130;
+    
+    if(bossShootTimer>=triggerTime){
+      bossShootTimer=0;
+      if(bossHP > 1){
+        bossProjs.push({type:'normal', x:bossWorldX-4, y:BOSS_PLAT.y-PH/2, vx:-1.2, vy:0});
+      } else {
+        bossProjs.push({type:'meteor', x:player.x + (Math.random()*60 - 30), y:0, vx:0, vy:1.5});
+        bossProjs.push({type:'normal', x:bossWorldX-4, y:BOSS_PLAT.y-PH/2, vx:-1.5, vy:0});
+      }
+    }
+    if(fireCD>0){fireCD--; updateFireUI();}
+    
+    for(let i=bossProjs.length-1;i>=0;i--){
+      const p=bossProjs[i]; p.x+=p.vx; p.y+=p.vy;
+      if(player.inv===0&&Math.abs(p.x-(player.x+5))<9&&Math.abs(p.y-(player.y+7))<9){
+        playSound('hit'); player.hp=Math.max(0,player.hp-1); player.inv=80; bossProjs.splice(i,1);
+        if(player.hp<=0){
+          player.hp=3; bossHP=3; bossProjs.length=0; playerProjs.length=0; fireCD=0; bossShootTimer=0; azraSupporterState=0;
+          player.x=BOSS_PLAT.x+10; player.y=BOSS_PLAT.y-PH; player.vy=0; updateFireUI();
+          break; // DÜZELTME: dizi sıfırlandıktan sonra döngüye devam etmek "undefined" hatasıyla oyunu donduruyordu
+        }
+        continue;
+      }
+      if(p.x<BOSS_PLAT.x-30||p.y>VH+10) bossProjs.splice(i,1);
+    }
+    
+    for(let i=playerProjs.length-1;i>=0;i--){
+      const p=playerProjs[i]; p.x+=p.vx;
+      if(Math.abs(p.x-bossWorldX)<12&&Math.abs(p.y-(bossWorldY+7))<16){
+        playSound('hit'); bossHP=Math.max(0,bossHP-1); playerProjs.splice(i,1);
+        if(bossHP<=0){
+          bossDead=true; state='play'; bossProjs.length=0; playerProjs.length=0;
+          document.getElementById('bossControls').style.display='none';
+          document.getElementById('normalControls').style.display='flex';
+          break; // DÜZELTME: dizi sıfırlandıktan sonra döngüye devam etmek oyunu donduruyordu
+        }
+        continue;
+      }
+      if(p.x>BOSS_PLAT.x+BOSS_PLAT.w+30) playerProjs.splice(i,1);
+    }
+  }
+  updateHDUI();
+}
+
+function drawBG(){
+  if(!isCyberUniverse){
+    ctx.fillStyle='#1a0533'; ctx.fillRect(0,0,VW,VH);
+    ctx.fillStyle='#fff'; for(let i=0;i<60;i++)ctx.fillRect((i*57+9)%VW,(i*37+3)%(VH*0.55),1,1);
+  } else {
+    ctx.fillStyle='#060012'; ctx.fillRect(0,0,VW,VH);
+    ctx.fillStyle='rgba(0, 255, 255, 0.08)';
+    for(let i=0; i<VW; i+=20){ ctx.fillRect(i-(animTick*0.2)%20, 0, 1, VH); }
+    for(let j=0; j<VH; j+=20){ ctx.fillRect(0, j, VW, 1); }
+  }
+}
+
+function drawPlatforms(){
+  for(const p of platforms){
+    const sx=p.x-cam; if(sx+p.w<0||sx>VW)continue;
+    if(!isCyberUniverse){
+      ctx.fillStyle='#7040c0'; ctx.fillRect(sx,p.y,p.w,6);
+      ctx.fillStyle='#a060f0'; ctx.fillRect(sx,p.y,p.w,2);
+    } else {
+      ctx.fillStyle='#110022'; ctx.fillRect(sx,p.y,p.w,6);
+      ctx.fillStyle='#ff00ff'; ctx.fillRect(sx,p.y,p.w,1);
+      ctx.fillStyle='#00ffff'; ctx.fillRect(sx,p.y+5,p.w,1);
+    }
+  }
+}
+
+function drawSpikes(){
+  if(isCyberUniverse) return;
+  for(const s of spikes){
+    const sx=s.x-cam; if(sx+s.w<0||sx>VW)continue;
+    ctx.fillStyle='#ff3333';
+    for(let i=0;i<s.w;i+=8){
+      ctx.beginPath();ctx.moveTo(sx+i,s.y+7);ctx.lineTo(sx+i+4,s.y);ctx.lineTo(sx+i+8,s.y+7);ctx.fill();
+    }
+  }
+}
+
+function drawGifts(){
+  if(isCyberUniverse) return;
+  for(const g of gifts){
+    if(g.collected)continue;
+    const sx=g.x-cam; if(sx<-20||sx>VW+20)continue;
+    const bob=Math.sin(animTick*0.07+g.x)*1.2;
+    ctx.font='9px serif'; ctx.textAlign='center'; ctx.fillText(g.emoji,sx,g.y+bob);
+  }
+}
+
+function drawChar(wx,wy,hair,shirt,pants,facing,leg,inv){
+  const sx=wx-cam; if(sx<-20||sx>VW+20)return;
+  if(inv&&animTick%6<3)return;
+  ctx.save(); ctx.translate(facing===-1?sx+8:sx,0); if(facing===-1)ctx.scale(-1,1);
+  const y=wy,sk='#c8844a';
+  ctx.fillStyle=hair; ctx.fillRect(0,y,8,3); ctx.fillStyle=sk; ctx.fillRect(1,y+3,6,5);
+  ctx.fillStyle='#000'; ctx.fillRect(2,y+4,1,2); ctx.fillRect(5,y+4,1,2);
+  ctx.fillStyle='#a05030'; ctx.fillRect(3,y+7,2,1); ctx.fillStyle=shirt; ctx.fillRect(0,y+8,8,4);
+  ctx.fillStyle=sk; ctx.fillRect(-1,y+8,2,3); ctx.fillRect(7,y+8,2,3); ctx.fillStyle=pants;
+  if(leg===0){ctx.fillRect(0,y+12,3,4);ctx.fillRect(5,y+12,3,4);}
+  else{ctx.fillRect(0,y+12,3,2);ctx.fillRect(-1,y+14,3,2);ctx.fillRect(5,y+12,3,2);ctx.fillRect(6,y+14,3,2);}
+  ctx.restore();
+}
+
+function drawAzra(wx,wy){
+  const sx=wx-cam; if(sx<-20||sx>VW+20)return;
+  const bob=Math.sin(animTick*0.1)*1;
+  ctx.font='8px serif'; ctx.textAlign='center'; ctx.fillText('💜',sx+4,wy-6+bob);
+  ctx.save(); ctx.translate(sx+8,0); ctx.scale(-1,1);
+  const y=wy,sk='#c8844a';
+  ctx.fillStyle='#2a1005'; ctx.fillRect(0,y,8,3); ctx.fillStyle=sk; ctx.fillRect(1,y+3,6,5);
+  ctx.fillStyle='#000'; ctx.fillRect(2,y+4,1,2); ctx.fillRect(5,y+4,1,2);
+  ctx.fillStyle='#cc4466'; ctx.fillRect(3,y+7,2,1); ctx.fillStyle='#fff'; ctx.fillRect(-1,y+8,10,8);
+  ctx.fillStyle=sk; ctx.fillRect(-1,y+8,2,3); ctx.fillRect(7,y+8,2,3);
+  ctx.restore();
+}
+
+function drawBossChar(wx,wy){
+  const sx=wx-cam; if(sx<-20||sx>VW+20)return;
+  const bob=Math.sin(animTick*0.1)*1;
+  ctx.fillStyle=(bossHP===1 && animTick%10<5)?'#ff0033':'#0a0a0a';
+  ctx.fillRect(sx,wy+bob,12,3); ctx.fillStyle='#1a1a1a'; ctx.fillRect(sx+1,wy+3+bob,10,7);
+  ctx.fillStyle='#ff1100'; ctx.fillRect(sx+2,wy+4+bob,2,2); ctx.fillRect(sx+8,wy+4+bob,2,2);
+  ctx.fillStyle='#cc0000'; ctx.fillRect(sx+3,wy+8+bob,6,2);
+  ctx.fillStyle='#111'; ctx.fillRect(sx,wy+10+bob,12,4);
+}
+
+function drawProjectiles(){
+  for(const p of bossProjs){
+    const sx=p.x-cam;
+    if(p.type === 'meteor'){
+      ctx.fillStyle='#ff3300'; ctx.beginPath(); ctx.arc(sx,p.y,5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#ffff00'; ctx.beginPath(); ctx.arc(sx,p.y,2,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.fillStyle='#ff2200'; ctx.beginPath(); ctx.arc(sx,p.y,4,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#ff8800'; ctx.beginPath(); ctx.arc(sx,p.y,2,0,Math.PI*2); ctx.fill();
+    }
+  }
+  for(const p of playerProjs){
+    const sx=p.x-cam;
+    ctx.fillStyle='#00ffff'; ctx.beginPath(); ctx.arc(sx,p.y,4,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.arc(sx,p.y,2,0,Math.PI*2); ctx.fill();
+  }
+}
+
+function drawHUD(){
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(2,10,46,11);
+  ctx.font='8px serif'; ctx.textAlign='left';
+  let hx=4; for(const g of gifts){ctx.globalAlpha=g.collected?1:0.2; ctx.fillText(g.emoji,hx,19); hx+=15;}
+  ctx.globalAlpha=1; ctx.font='8px serif'; ctx.textAlign='right';
+  let hpx=VW-2; for(let i=0;i<3;i++){ctx.globalAlpha=i<player.hp?1:0.2; ctx.fillText('❤️',hpx,19); hpx-=12;}
+  ctx.globalAlpha=1;
+  if(state==='boss_fight'){
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(VW/2-24,10,48,12);
+    ctx.font='bold 4px sans-serif'; ctx.fillStyle='#ff3355'; ctx.textAlign='center'; ctx.fillText('UZAK MESAFE',VW/2,14);
+    ctx.font='8px serif'; let bx=VW/2-10;
+    for(let i=0; i<3; i++){ctx.globalAlpha=i<bossHP?1:0.2; ctx.fillText('🖤',bx,22); bx+=10;}
+    ctx.globalAlpha=1;
+  }
+}
+
+function draw(){
+  drawBG(); drawPlatforms(); drawSpikes(); drawGifts();
+  if(bossDead){ drawAzra(azraWorldX,azraWorldY); }
+  if(!bossDead&&(state==='boss_fight'||(state==='play'&&gifts.every(g=>g.collected)))){ drawBossChar(bossWorldX,bossWorldY); }
+  drawProjectiles();
+  drawChar(player.x,player.y,'#1a0800','#111111','#1a3a8a',player.facing,player.leg,player.inv>0);
+  drawHUD();
+}
+
+function loop(){ update(); draw(); requestAnimationFrame(loop); }
+
+function restartGame(){
+  player={x:20,y:GY-PH,vy:0,vx:0,onGround:false,facing:1,leg:0,lt:0,hp:3,inv:0};
+  cam=0; state='play'; bossDead=false; finalDialogDone=false; isCyberUniverse=false; azraSupporterState=0; collectedGifts=[];
+  bossHP=3; bossProjs=[]; playerProjs=[]; bossShootTimer=0; fireCD=0;
+  gifts.forEach(g=>g.collected=false);
+  document.getElementById('winScreen').style.display='none';
+  document.getElementById('dialogBox').style.display='none';
+  document.getElementById('bossControls').style.display='none';
+  document.getElementById('normalControls').style.display='flex';
+  updateFireUI(); updateHDUI();
+}
+
+const keys={left:false,right:false,jump:false};
+function setKey(k,v){ if(v) initAudio(); if(k==='L')keys.left=v; else if(k==='R')keys.right=v; else if(k==='J')keys.jump=v; }
+[['btnLeft','L'],['btnRight','R'],['btnJump','J'],
+ ['bBtnLeft','L'],['bBtnRight','R'],['bBtnJump','J']].forEach(([id,k])=>{
+  const el=document.getElementById(id);
+  el.addEventListener('touchstart',e=>{e.preventDefault();setKey(k,true);},{passive:false});
+  el.addEventListener('touchend',e=>{e.preventDefault();setKey(k,false);},{passive:false});
+  el.addEventListener('mousedown',()=>setKey(k,true)); el.addEventListener('mouseup',()=>setKey(k,false));
+  el.addEventListener('mouseleave',()=>{if(k!=='J')setKey(k,false);});
+});
+const fireBtn=document.getElementById('btnFire');
+fireBtn.addEventListener('touchstart',e=>{e.preventDefault();fireShot();},{passive:false});
+fireBtn.addEventListener('mousedown',()=>fireShot());
+
+document.addEventListener('keydown',e=>{
+  initAudio();
+  if(e.key==='ArrowLeft'){e.preventDefault();keys.left=true;}
+  if(e.key==='ArrowRight'){e.preventDefault();keys.right=true;}
+  if(e.key==='ArrowUp'||e.key===' '){e.preventDefault();keys.jump=true;}
+  if(e.key==='z'||e.key==='Z')fireShot();
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft')keys.left=false; if(e.key==='ArrowRight')keys.right=false; if(e.key==='ArrowUp'||e.key===' ')keys.jump=false;
+});
+
+const style = document.createElement('style');
+style.innerHTML = `@keyframes bubblePop { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }`;
+document.head.appendChild(style);
+
+updateFireUI(); resizeCanvas(); loop();
+</script>
+</body>
+</html>
